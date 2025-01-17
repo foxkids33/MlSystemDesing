@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+    service:
+        container_name: $CONTAINER_NAME
+        image: krinkin/$PROJECT.$SERVICE_NAME:$BRANCH
+#UNCOMMENT_ME_FOR_DEV        build:
+#UNCOMMENT_ME_FOR_DEV          context: .
+#UNCOMMENT_ME_FOR_DEV          dockerfile: ./Dockerfile
+        ports:
+            - "5137:5137"
+        env_file:
+            - ./.env
+        volumes:
+            - $CONTAINER_DATA:/data
+            - $VERSION_FILE:/VERSION:ro
+#UNCOMMENT_ME_FOR_DEV            - ./smart-seminarian-frontend:/smart-seminarian-frontend:ro
+        healthcheck:
+            test: curl --fail https://seminarian-stage.csai.site/ || exit 1
+#UNCOMMENT_ME_FOR_DEV            test: curl --fail http://localhost:5000/ || exit 1
+            interval: 10s
+            timeout: 10s
+            retries: 3
+            start_period: 3s
+        restart: unless-stopped
+        
+#DELETE_BLOCK_FOR_DEV
+#    tunnel:
+#        container_name:  ${CONTAINER_NAME}_tunnel
+#        depends_on:
+#            -   service
+#        env_file:
+#            - ./.env
+#        image: cloudflare/cloudflared:latest
+#        command: [ "tunnel",
+#                   "--no-autoupdate",
+#                   "run",
+#                   "--token",
+#                   "$CF_TOKEN"
+#        ]
+#DELETE_BLOCK_FOR_DEV

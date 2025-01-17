@@ -1,0 +1,136 @@
+name: Deploy
+
+on:
+  repository_dispatch:
+    types:
+      - commit-to-branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SERVICE:     "${{ github.event.client_payload.repo }}"
+      INSTANCE:    "${{ github.event.client_payload.repo }}_${{ github.event.client_payload.branch }}"
+
+    steps:
+
+      - name: Checkout CI/CD
+        uses: actions/checkout@v4
+
+      - name: Print Branch Information
+        run: |
+          echo "===== Initiated deploy ${{ github.event.client_payload.owner }} ===== "
+          echo " repo   : ${{ github.event.client_payload.repo }}"
+          echo " branch : ${{ github.event.client_payload.branch }} "
+          echo " sha    : ${{ github.event.client_payload.sha }}"
+          echo "====================================================================== "
+
+      - name: Creating .env
+        run: |
+          echo "${{secrets.ENV_FILE}}" > ./.env
+          echo "PROJECT=seminarian" >> ./.env
+          echo "CONTAINER_NAME=$INSTANCE" >> ./.env
+          echo "CONTAINER_DATA=${{vars.HOST_SERVICES_DATA}}/$INSTANCE" >> ./.env
+          echo "SERVICE_NAME=$SERVICE" >> ./.env
+          echo "BRANCH=${{ github.event.client_payload.branch }}" >> ./.env
+          echo "VERSION_FILE=./VERSION" >> ./.env
+          echo "AUTH_SECRET=${{secrets.AUTH_SECRET}}" >> ./.env          
+          echo "OPENAI_API_KEY=${{secrets.OPENAI_API_KEY}}"  >> ./.env
+          echo "MEMGRAPH_HOST=${{secrets.MEMGRAPH_HOST}}"  >> ./.env
+          echo "MEMGRAPH_PORT=${{secrets.MEMGRAPH_PORT}}"  >> ./.env
+          ls -la
+
+      - name: GITHUB_APP generation front-end:stage
+        if: github.event.client_payload.repo == 'front-end' && github.event.client_payload.branch == 'stage'
+        run : |
+          echo "AUTH_GITHUB_ID=${{secrets.AUTH_GITHUB_ID_STAGE}}" >> ./.env
+          echo "AUTH_GITHUB_SECRET=${{secrets.AUTH_GITHUB_SECRET_STAGE}}" >> ./.env
+          echo "PUBLIC_VITE_API_URL=${{secrets.PUBLIC_VITE_API_URL}}" >> ./.env
+          echo "PUBLIC_VITE_API_TOKEN=${{secrets.PUBLIC_VITE_API_TOKEN}}" >> ./.env
+
+      - name: GITHUB_APP generation front-end:prod
+        if: github.event.client_payload.repo == 'front-end' && github.event.client_payload.branch == 'prod'
+        run : |
+          echo "!!! NOT IMPLEMENTED YET !!!"
+
+      - name: CF_TOKEN generation back-end:stage
+        if: github.event.client_payload.repo == 'back-end' && github.event.client_payload.branch == 'stage'
+        run : |
+          echo "CF_TOKEN=${{secrets.CF_TOKEN_API_STAGE}}" >> ./.env
+
+      - name: CF_TOKEN generation front-end:stage
+        if: github.event.client_payload.repo == 'front-end' && github.event.client_payload.branch == 'stage'
+        run : |
+          echo "CF_TOKEN=${{secrets.CF_TOKEN_FRONT_STAGE}}" >> ./.env
+          echo "ORIGIN=https://seminarian-stage.csai.site/" >> ./.env
+
+      - name: CF_TOKEN generation back-end:prod
+        if: github.event.client_payload.repo == 'back-end' && github.event.client_payload.branch == 'prod'
+        run : |
+          echo "CF_TOKEN=${{secrets.CF_TOKEN_API}}" >> ./.env
+
+      - name: CF_TOKEN generation front-end:prod
+        if: github.event.client_payload.repo == 'front-end' && github.event.client_payload.branch == 'prod'
+        run : |
+          echo "CF_TOKEN=${{secrets.CF_TOKEN_FRONT}}" >> ./.env
+
+      - name: CF_TOKEN generation debug
+        if: github.event.client_payload.branch != 'prod' && github.event.client_payload.branch != 'stage'
+        run : |
+          echo "CF_TOKEN=${{secrets.CF_TOKEN_DBG}}" >> ./.env
+
+      - name: Register ssh
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          cat >>~/.ssh/config <<END
+            Host remote
+            HostName $SSH_HOST
+            Port 22
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy.key
+            StrictHostKeyChecking no
+          END
+        env:
+          SSH_USER: ${{vars.REMOTE_USER}}
+          SSH_KEY: ${{secrets.TARGET_PRIVATE_KEY}}
+          SSH_HOST: ${{secrets.TARGET_IP}}
+
+      - name: testing hostname
+        run: |
+          cat ~/.ssh/config
+          cat ~/.ssh/deploy.key
+          ssh remote /usr/bin/hostname
+
+      - name: Cleaning service directory
+        run: |
+          ssh remote mkdir -p   ${{vars.HOST_SERVICES_HOME}}/$INSTANCE/
+          ssh remote rm    -rf  ${{vars.HOST_SERVICES_HOME}}/$INSTANCE/
+
+      - name: version info
+        run: |
+            D=`date`
+            echo "Deploy info: date=$D, repo= $INSTANCE -> ${{ github.event.client_payload.sha }}" > ./VERSION
+
+      - name: Copy launch and config files
+        run: |
+          ssh remote mkdir -p ${{vars.HOST_SERVICES_HOME}}/$INSTANCE
+          scp  ./deploy/$SERVICE/* remote:${{vars.HOST_SERVICES_HOME}}/$INSTANCE
+          scp  ./.env remote:${{vars.HOST_SERVICES_HOME}}/$INSTANCE
+          scp  ./VERSION remote:${{vars.HOST_SERVICES_HOME}}/$INSTANCE
+
+      - name: Run docker-compose
+        run: |
+          ssh remote docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
+          ssh remote docker compose --project-directory ${{vars.HOST_SERVICES_HOME}}/$INSTANCE/ down
+          ssh remote docker pull ${{secrets.DOCKER_USERNAME}}/seminarian.${{github.event.client_payload.repo}}:${{ github.event.client_payload.branch }}
+          ssh remote docker compose --project-directory ${{vars.HOST_SERVICES_HOME}}/$INSTANCE/ up --detach --force-recreate --remove-orphans
+
+      - name: Run ui-tests in front-end repository
+        if: github.event.client_payload.repo == 'front-end' && github.event.client_payload.branch == 'stage'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CICD_GITHUB_TOKEN }}
+          repository: SmartSeminarian/front-end
+          event-type: stage-deploy

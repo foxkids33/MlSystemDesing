@@ -1,0 +1,26 @@
+name: UI-testing
+
+on:
+  repository_dispatch:
+    types:
+      - stage-deploy
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install packages and run tests
+        shell: bash
+        run: |
+          npm install
+          cd app
+          npm install
+          npm test

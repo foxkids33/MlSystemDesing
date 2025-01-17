@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  memgraph:
+    image: "memgraph/memgraph-platform"
+    ports:
+      - "7687:7687"
+      - "3000:3000"
+      - "7444:7444"
+    volumes:
+      - mg_lib:/var/lib/memgraph
+      - mg_log:/var/log/memgraph
+      - mg_etc:/etc/memgraph
+    env_file:
+      - .env
+    environment:
+      - MEMGRAPH_LOG_LEVEL=TRACE
+    networks:
+      - memgraph-network
+
+  service:
+    container_name: $CONTAINER_NAME
+    image: krinkin/$PROJECT.$SERVICE_NAME:$BRANCH
+#UNCOMMENT_ME_FOR_DEV    build:
+#UNCOMMENT_ME_FOR_DEV      context: .
+#UNCOMMENT_ME_FOR_DEV      dockerfile: ./Dockerfile
+    ports:
+      - "5050:5050"
+    depends_on:
+      - memgraph
+    env_file:
+      - .env
+    volumes:
+      - $CONTAINER_DATA:/data
+      - $VERSION_FILE:/VERSION:ro
+      - ./app:/app
+    networks:
+      - memgraph-network
+    healthcheck:
+      test: curl --fail http://localhost:5000/version || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: test_container
+    ports:
+      - "5001:5001"
+    depends_on:
+      - service
+      - memgraph
+    networks:
+      - memgraph-network
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./app/tests:/tests
+    command: ["python3", "test_dashboard.py"]
+
+networks:
+  memgraph-network:
+
+volumes:
+  mg_lib:
+  mg_log:
+  mg_etc:
+  service_data:

@@ -1,0 +1,768 @@
+openapi: 3.0.0
+info:
+  title: Smart Seminarian API
+  description: API for the Smart Seminarian project to help users train basic C programming skills.
+  version: 0.0.1
+
+paths:
+  /login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                github_username:
+                  type: string
+                token:
+                  type: string
+              required:
+                - github_username
+                - token
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /version:
+    get:
+      summary: Get service version
+      responses:
+        '200':
+          description: Service version information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  /concept:
+    get:
+      summary: Get all concepts
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      responses:
+        '200':
+          description: List of all concepts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Concept'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new concept
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                difficulty:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+              required:
+                - name
+      responses:
+        '201':
+          description: Concept created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Concept'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Concept with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /concept/{conceptId}:
+    get:
+      summary: Get a concept by ID
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      parameters:
+        - in: path
+          name: conceptId
+          required: true
+          schema:
+            type: string
+          description: The ID of the concept to retrieve
+      responses:
+        '200':
+          description: Concept retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Concept'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Concept with the given ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete a concept
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      parameters:
+        - in: path
+          name: conceptId
+          required: true
+          schema:
+            type: string
+          description: The ID of the concept to delete
+      responses:
+        '200':
+          description: Concept deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Concept deleted successfully"
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Concept with the given ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a concept (creates a new version)
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      parameters:
+        - in: path
+          name: conceptId
+          required: true
+          schema:
+            type: string
+          description: The ID of the concept to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                difficulty:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+      responses:
+        '200':
+          description: Concept updated successfully (new version created)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Concept'
+                  - type: object
+                    properties:
+                      version:
+                        type: integer
+                      created_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found - Concept with the given ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /concept/bind:
+    post:
+      summary: Bind two concepts with a relation
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source_id:
+                  type: string
+                target_id:
+                  type: string
+                relation:
+                  type: string
+              required:
+                - source_id
+                - target_id
+                - relation
+      responses:
+        '201':
+          description: Concepts bound successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source_id:
+                    type: string
+                  target_id:
+                    type: string
+                  relation_type:
+                    type: string
+                  relation:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /concept/unbind:
+    post:
+      summary: Unbind two concepts (remove relation)
+      tags:
+        - Concepts
+      security:
+        - SessionAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source_id:
+                  type: string
+                target_id:
+                  type: string
+                relation:
+                  type: string
+              required:
+                - source_id
+                - target_id
+      responses:
+        '200':
+          description: Concepts unbound successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    source_id:
+                      type: string
+                    target_id:
+                      type: string
+                    relation_type:
+                      type: string
+                    relation:
+                      type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No matching relations found to unbind
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  /problem:
+    get:
+      security:
+        - SessionAuth: [ ]
+      summary: Get problem to solve
+      responses:
+        '200':
+          description: Problem details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /solution:
+    post:
+      security:
+        - SessionAuth: [ ]
+      summary: Submit solution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                problemId:
+                  type: string
+                solutionCode:
+                  type: string
+              required:
+                - problemId
+                - solutionCode
+      responses:
+        '200':
+          description: Solution submission response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  problemId:
+                    type: string
+                  evaluation:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Problem not found or not associated with user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /user/problems:
+    get:
+      summary: Get all problems for the current user
+      tags:
+        - User
+      security:
+        - SessionAuth: [ ]
+      responses:
+        '200':
+          description: List of user's problems
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  problems:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        description:
+                          type: string
+                        exampleInput:
+                          type: string
+                        exampleOutput:
+                          type: string
+                        userProblemId:
+                          type: integer
+                        hasSubmission:
+                          type: boolean
+                        solutionCode:
+                          type: string
+                          nullable: true
+                  totalCount:
+                    type: integer
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /chat:
+    post:
+      summary: Send a chat message
+      security:
+        - SessionAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                context:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [ problem, solution ]
+                    id:
+                      type: string
+              required:
+                - message
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assistant_response:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions:
+    get:
+      summary: Get user sessions
+      security:
+        - SessionAuth: [ ]
+      responses:
+        '200':
+          description: List of user sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /dialogues:
+    get:
+      summary: Get user dialogues
+      security:
+        - SessionAuth: [ ]
+      responses:
+        '200':
+          description: List of user dialogues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    timestamp:
+                      type: string
+                      format: date-time
+                    content:
+                      type: object
+                      properties:
+                        user:
+                          type: string
+                        assistant:
+                          type: string
+                        context_type:
+                          type: string
+                        context_id:
+                          type: string
+        '401':
+          description: Unauthorized - Invalid or missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: header
+      name: X-Session-ID
+
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        github_username:
+          type: string
+        token:
+          type: string
+      required:
+        - github_username
+        - token
+
+    LoginResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+
+
+    Concept:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        difficulty:
+          type: integer
+      required:
+        - id
+        - name
+
+
+    Problem:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        exampleInput:
+          type: string
+        exampleOutput:
+          type: string
+
+    SolutionSubmission:
+      type: object
+      properties:
+        problemId:
+          type: string
+        solutionCode:
+          type: string
+      required:
+        - problemId
+        - solutionCode
+
+    SolutionResponse:
+      type: object
+      properties:
+        problemId:
+          type: string
+        evaluation:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: integer
+
+    Version:
+        type: object
+        properties:
+            api_version:
+              type: string
+            build_info:
+              type: string

@@ -1,0 +1,38 @@
+2023-11-18 10:10:53,030:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 10:10:53,030:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 10:11:58,946:INFO:172.19.0.1 - - [18/Nov/2023 10:11:58] "GET / HTTP/1.1" 200 -
+2023-11-18 11:02:20,157:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 11:02:20,158:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 15:13:48,488:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 15:13:48,489:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 15:14:07,472:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 15:14:07,473:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 15:15:08,575:INFO:172.19.0.1 - - [18/Nov/2023 15:15:08] "GET / HTTP/1.1" 200 -
+2023-11-18 15:15:08,617:INFO:172.19.0.1 - - [18/Nov/2023 15:15:08] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2023-11-18 15:17:08,141:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 15:17:08,141:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 15:17:31,191:INFO:172.19.0.1 - - [18/Nov/2023 15:17:31] "GET / HTTP/1.1" 200 -
+2023-11-18 15:17:31,225:INFO:172.19.0.1 - - [18/Nov/2023 15:17:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2023-11-18 15:17:34,294:INFO:172.19.0.1 - - [18/Nov/2023 15:17:34] "GET / HTTP/1.1" 200 -
+2023-11-18 15:26:52,055:INFO:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.2:5000
+2023-11-18 15:26:52,056:INFO:[33mPress CTRL+C to quit[0m
+2023-11-18 15:27:15,184:INFO:172.19.0.1 - - [18/Nov/2023 15:27:15] "GET / HTTP/1.1" 200 -
+2023-11-18 15:27:15,262:INFO:172.19.0.1 - - [18/Nov/2023 15:27:15] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
